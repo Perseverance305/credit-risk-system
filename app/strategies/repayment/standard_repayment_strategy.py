@@ -1,13 +1,12 @@
+from decimal import Decimal
+
 from app.contracts.repayment_strategy import RepaymentStrategy
 from app.models.loan_application import LoanApplication
 from app.models.repayment_result import RepaymentResult
-import math
 
 
 class StandardRepaymentStrategy(RepaymentStrategy):
-    """
-    Standard amortising loan repayment strategy.
-    """
+    """Standard amortising loan repayment strategy."""
 
     def calculate(
         self,
@@ -18,75 +17,87 @@ class StandardRepaymentStrategy(RepaymentStrategy):
             application
         )
 
-        total_interest = self._calculate_total_interest(
+        total_repayment = self._calculate_total_repayment(
             application,
             monthly_repayment
         )
 
-        total_repayment = self._calculate_total_repayment(
-            monthly_repayment,
+        total_interest = self._calculate_total_interest(
+            total_repayment,
             application
-            
         )
 
         return RepaymentResult(
             monthly_repayment=monthly_repayment,
             total_interest=total_interest,
             total_repayment=total_repayment,
-            effective_interest_rate=0.0,
+            effective_interest_rate=application.annual_interest_rate,
             instalments=application.loan_term_months,
-            amortisation_method="Standard"
+            amortisation_method="AMORTISED"
         )
-# 1. Establish the monthly repayment
 
-def _calculate_monthly_repayment(
-    self,
-    application: LoanApplication
-) -> float:
+    def _calculate_monthly_repayment(
+        self,
+        application: LoanApplication
+    ) -> Decimal:
 
-    principal = application.requested_amount
-    annual_rate = application.annual_interest_rate
-    term_months = application.loan_term_months
+        principal = application.requested_amount
+        annual_rate = application.annual_interest_rate
+        term_months = application.loan_term_months
 
-    monthly_rate = annual_rate / 1200
+        monthly_rate = (
+            annual_rate
+            / Decimal("12")
+            / Decimal("100")
+        )
 
-    if math.isclose(monthly_rate, 0.0):
-        return principal / term_months
+        if monthly_rate == Decimal("0"):
+            return (
+                principal
+                / Decimal(term_months)
+            ).quantize(Decimal("0.01"))
 
-    growth_factor = (1 + monthly_rate) ** term_months
+        growth_factor = (
+            Decimal("1") + monthly_rate
+        ) ** term_months
 
-    numerator = monthly_rate * growth_factor
-    denominator = growth_factor - 1
+        monthly_repayment = (
+            principal
+            * monthly_rate
+            * growth_factor
+            / (growth_factor - Decimal("1"))
+        )
 
-    monthly_payment = principal * (numerator / denominator)
+        return monthly_repayment.quantize(
+            Decimal("0.01")
+        )
 
-    return monthly_payment
+    def _calculate_total_repayment(
+        self,
+        application: LoanApplication,
+        monthly_repayment: Decimal
+    ) -> Decimal:
 
-        raise NotImplementedError
+        total_repayment = (
+            monthly_repayment
+            * Decimal(application.loan_term_months)
+        )
 
-# 2. Establish the total interest
+        return total_repayment.quantize(
+            Decimal("0.01")
+        )
 
-def _calculate_total_interest(
-    self,
-    application: LoanApplication,
-    monthly_repayment: float
-) -> float:
+    def _calculate_total_interest(
+        self,
+        total_repayment: Decimal,
+        application: LoanApplication
+    ) -> Decimal:
 
-    total_repayment = (
-        monthly_repayment
-        * application.loan_term_months
-    )
+        total_interest = (
+            total_repayment
+            - application.requested_amount
+        )
 
-    return total_repayment - application.requested_amount
-        raise NotImplementedError
-
-# 3. Establish the total repayment
-
-def _calculate_total_repayment(
-    application: LoanApplication,
-    total_interest: float
-) -> float:
-        raise NotImplementedError
-
-# 4. Record the repayment result
-    return RepaymentResult(...)   
+        return total_interest.quantize(
+            Decimal("0.01")
+        )

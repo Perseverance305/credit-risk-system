@@ -1,12 +1,18 @@
 from dataclasses import dataclass
+from decimal import Decimal
 
 
 @dataclass(frozen=True)
 class AffordabilityMetrics:
-    monthly_income: float
-    monthly_expenses: float
-    existing_debt: float
-    disposable_income: float
-    estimated_monthly_repayment: float
-    debt_to_income_ratio: float
-    repayment_to_income_ratio: float
+    """
+    Represents the financial metrics calculated during
+    an affordability assessment.
+    """
+
+    monthly_income: Decimal
+    monthly_expenses: Decimal
+    existing_debt: Decimal
+    disposable_income: Decimal
+    estimated_monthly_repayment: Decimal
+    debt_to_income_ratio: Decimal
+    repayment_to_income_ratio: Decimal
